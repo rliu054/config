@@ -75,6 +75,6 @@ export PATH="/opt/homebrew/opt/node@18/bin:$PATH"
 
 # extra key bindings
 bindkey -v
-bindkey '^I' autosuggest-accept
+bindkey '\t\t' autosuggest-accept
 
 source <(fzf --zsh)
