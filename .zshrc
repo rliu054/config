@@ -63,8 +63,7 @@ export NVM_DIR="$HOME/.nvm"
 # better CD
 eval "$(zoxide init zsh --cmd cd)"
 
-echo -e "`date +"%Y-%m-%d %H:%M:%S"` direnv hooking zsh"
-eval "$(direnv hook zsh)"
+# eval "$(direnv hook zsh)"
 
 typeset -g POWERLEVEL9K_INSTANT_PROMPT=quiet
 
