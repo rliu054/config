@@ -1,50 +1,55 @@
+#!/bin/bash
+set -euo pipefail
+
 # ====== Install packages ======
 brew install --cask font-meslo-lg-nerd-font
-brew install tmux
-brew install neovim
-brew install fzf
-brew install --cask wezterm
-brew install direnv
+brew install neovim fzf direnv zoxide uv
 
-# Python version management
-brew install pyenv
+# Zsh plugin
+ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
+git clone https://github.com/zsh-users/zsh-autosuggestions "$ZSH_CUSTOM/plugins/zsh-autosuggestions" || true
 
-# Tmux plugin manager
-git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+# ====== Setup symlinks safely ======
 
-# Zsh
-git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
-brew install zoxide # smarter cd
+DOTFILES_DIR="$(pwd)"
 
+# Verify we're in correct directory
+if [ ! -d "$DOTFILES_DIR/.git" ]; then
+  echo "Error: Please run this script from your dotfiles repository root!"
+  exit 1
+fi
 
-# ====== Set up symlinks ======
+# Backup existing dotfiles to a timestamped directory
+BACKUP_DIR="$HOME/dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
+mkdir -p "$BACKUP_DIR"
+echo "Backing up existing files to $BACKUP_DIR..."
 
-# Get the current working directory
-PWD=$(pwd)
+# Function to safely symlink files/directories
+symlink_dotfile() {
+  local src="$1"
+  local dst="$2"
 
-# Find all hidden files (excluding `.` and `..`) in the current directory
-FILES=$(find . -maxdepth 1 -type f -name ".*")
-
-# Loop through the files and create symlinks
-for FILE in $FILES; do
-  BASENAME=$(basename "$FILE")
-  SOURCE="$PWD/$BASENAME"
-  TARGET="$HOME/$BASENAME"
-
-  # Check if the target already exists
-  if [ -e "$TARGET" ] || [ -L "$TARGET" ]; then
-    echo "Backing up existing $TARGET to ${TARGET}.bak"
-    mv "$TARGET" "${TARGET}.bak"
+  if [ -e "$dst" ] || [ -L "$dst" ]; then
+    echo "Backing up $(basename "$dst")"
+    mv "$dst" "$BACKUP_DIR/"
   fi
 
-  # Create the symlink
-  echo "Creating symlink from $SOURCE to $TARGET"
-  ln -s "$SOURCE" "$TARGET"
+  echo "Creating symlink: $dst -> $src"
+  ln -s "$src" "$dst"
 
-  # Verify the symlink creation
-  if [ -L "$TARGET" ]; then
-    echo "Symlink for $BASENAME created successfully!"
+  if [ -L "$dst" ]; then
+    echo "✅ Created symlink: $(basename "$dst")"
   else
-    echo "Failed to create symlink for $BASENAME."
+    echo "❌ Failed to create symlink: $(basename "$dst")"
   fi
-done
+}
+
+# Symlink .zshrc and .wezterm.lua
+symlink_dotfile "$DOTFILES_DIR/.zshrc" "$HOME/.zshrc"
+symlink_dotfile "$DOTFILES_DIR/.wezterm.lua" "$HOME/.wezterm.lua"
+
+# Symlink Neovim config
+mkdir -p "$HOME/.config"
+symlink_dotfile "$DOTFILES_DIR/nvim" "$HOME/.config/nvim"
+
+echo "🎉 Dotfiles setup completed!"
